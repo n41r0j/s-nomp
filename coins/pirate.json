@@ -1,0 +1,13 @@
+{
+    "name": "PiRATE",
+    "symbol": "pirate",
+    "algorithm": "equihash",
+    "requireShielding": true,
+    "txfee": 0.0001,
+
+    "explorer": {
+        "txURL": "http://pirate.explorer.dexstats.info/tx/",
+        "blockURL": "http://pirate.explorer.dexstats.info/block/",
+        "_comment_explorer": "This is the coin's explorer full base url for transaction and blocks i.e. (https://explorer.coin.com/tx/). The pool will automatically add the transaction id or block id at the end."
+    }
+}
