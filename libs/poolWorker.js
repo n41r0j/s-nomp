@@ -136,7 +136,7 @@ module.exports = function(logger){
                 if (poolOptions.validateWorkerUsername !== true)
                     authCallback(true);
                 else {
-                        pool.daemon.cmd('validateaddress', [String(workerName).split(".")[0]], function (results) {
+                        pool.daemon.cmd('z_validateaddress', [String(workerName).split(".")[0]], function (results) {
                             var isValid = results.filter(function (r) {
                                 return r.response.isvalid
                             }).length > 0;

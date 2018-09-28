@@ -122,7 +122,6 @@ Credits
 ### s-nomp
 * [egyptianbman](https://github.com/egyptianbman)
 * [nettts](https://github.com/nettts)
-* [potato](https://github.com/zzzpotato)
 * You belong here. Join us!
 
 ### z-nomp

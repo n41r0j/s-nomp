@@ -98,7 +98,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
     function validateAddress (callback){
         daemon.cmd('validateaddress', [poolOptions.address], function(result) {
             if (result.error){
-                logger.error(logSystem, logComponent, 'Error with payment processing daemon (validateAddress) ' + JSON.stringify(result.error));
+                logger.error(logSystem, logComponent, 'Error with payment processing daemon ' + JSON.stringify(result.error));
                 callback(true);
             }
             else if (!result.response || !result.response.ismine) {
@@ -113,9 +113,9 @@ function SetupForPool(logger, poolOptions, setupFinished){
         }, true);
     }
     function validateTAddress (callback) {
-        daemon.cmd('validateaddress', [poolOptions.tAddress], function(result) {
+        daemon.cmd('z_validateaddress', [poolOptions.tAddress], function(result) {
             if (result.error){
-                logger.error(logSystem, logComponent, 'Error with payment processing daemon (validateTAddress) ' + JSON.stringify(result.error));
+                logger.error(logSystem, logComponent, 'Error with payment processing daemon ' + JSON.stringify(result.error));
                 callback(true);
             }
             else if (!result.response || !result.response.ismine) {
@@ -132,7 +132,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
      function validateZAddress (callback) {
         daemon.cmd('z_validateaddress', [poolOptions.zAddress], function(result) {
             if (result.error){
-                logger.error(logSystem, logComponent, 'Error with payment processing daemon (validateZAddress) ' + JSON.stringify(result.error));
+                logger.error(logSystem, logComponent, 'Error with payment processing daemon ' + JSON.stringify(result.error));
                 callback(true);
             }
             else if (!result.response || !result.response.ismine) {
@@ -306,7 +306,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     logger.error(logSystem, logComponent, 'Error trying to send z_address coin balance to payout t_address.'+JSON.stringify(result[0].error));
                     callback = function (){};
                     callback(true);
-                }
+                }/*
                 else {
                     var opid = (result.response || result[0].response);                    
                     opidCount++;
@@ -314,8 +314,14 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     logger.special(logSystem, logComponent, 'Unshield funds for payout ' + amount + ' ' + opid);
                     callback = function (){};
                     callback(null);
-                }
-            }
+                }*/
+				var opid = (result.response || result[0].response);                    
+                    opidCount++;
+                    opids.push(opid);
+
+				callback = function(){};
+				callback(null);
+			}
         );
     }
     
@@ -467,6 +473,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     if (op.status == "success" || op.status == "failed") {
                         // clear operation id result
                         var opid_index = opids.indexOf(op.id);
+						console.log(opid_index);
                         if (opid_index > -1) {
                             // clear operation id count
                             batchRPC.push(['z_getoperationresult', [[op.id]]]);
@@ -619,7 +626,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             serialized: r
                         };
                     });
-                    /* sort rounds by block height to pay in order */
+                    /* sort rounds by block hieght to pay in order */
                     rounds.sort(function(a, b) {
                         return a.height - b.height;
                     });
@@ -868,14 +875,16 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             totalOwed = totalOwed + (worker.balance||0);
                         }
                         // check if we have enough tAddress funds to begin payment processing
-                        listUnspent(null, notAddr, minConfPayout, false, function (error, tBalance){
+						//listUnspent(poolOptions.address, null, minConfShield, false, function (error, tBalance){
+                        //listUnspent(null, notAddr, minConfPayout, false, function (error, tBalance){
+						listUnspentZ(poolOptions.zAddress, minConfShield, false, function(error, zBalance){
                             if (error) {
                                 logger.error(logSystem, logComponent, 'Error checking pool balance before processing payments.');
                                 return callback(true);
-                            } else if (tBalance < totalOwed) {
-                                logger.error(logSystem, logComponent,  'Insufficient funds ('+satoshisToCoins(tBalance) + ') to process payments (' + satoshisToCoins(totalOwed)+'); possibly waiting for txs.');
+                            } else if (zBalance < totalOwed) {
+                                logger.error(logSystem, logComponent,  'Insufficient funds ('+satoshisToCoins(zBalance) + ') to process payments (' + satoshisToCoins(totalOwed)+'); possibly waiting for txs.');
                                 performPayment = false;
-                            } else if (tBalance > totalOwed) {
+                            } else if (zBalance > totalOwed) {
                                 performPayment = true;
                             }
                             // just in case...
@@ -1162,14 +1171,27 @@ function SetupForPool(logger, poolOptions, setupFinished){
                         addressAmounts[a] = coinsRound(addressAmounts[a]);
                     }
 
+					var i = 0;
+					var addressAmounts_fixed = [];
+					for (var x in addressAmounts){
+						addressAmounts_fixed.push({"address": x, "amount": addressAmounts[x]});
+						i++;
+					}
+
                     // POINT OF NO RETURN! GOOD LUCK!
                     // WE ARE SENDING PAYMENT CMD TO DAEMON
                     
                     // perform the sendmany operation .. addressAccount
-                    var rpccallTracking = 'sendmany "" '+JSON.stringify(addressAmounts);
+					// modified to z_sendmany
+                    var rpccallTracking = 'z_sendmany "" '+JSON.stringify(addressAmounts);
                     //console.log(rpccallTracking);
 
-                    daemon.cmd('sendmany', ["", addressAmounts], function (result) {
+					// var params = [poolOptions.address, [{'address': poolOptions.zAddress, 'amount': amount}]];
+					var params = [poolOptions.zAddress, addressAmounts_fixed];
+
+					console.log(JSON.stringify(params));
+
+                    daemon.cmd('z_sendmany', params, function (result) {
                         // check for failed payments, there are many reasons
                         if (result.error && result.error.code === -6) {
                             // check if it is because we don't have enough funds
@@ -1412,7 +1434,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
 
 
     var getProperAddress = function(address){
-        if (address.length >= 40){
+        if (address.length >= 100){
             logger.warning(logSystem, logComponent, 'Invalid address '+address+', convert to address '+(poolOptions.invalidAddress || poolOptions.address));
             return (poolOptions.invalidAddress || poolOptions.address);
         }
