@@ -104,7 +104,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
             else if (!result.response || !result.response.ismine) {
                 logger.error(logSystem, logComponent,
                     'Daemon does not own pool address - payment processing can not be done with this daemon, '
-                    + JSON.stringify(result.response));
+                    + JSON.stringify(result.response) + '.' + poolOptions.address);
                 callback(true);
             }
             else{
@@ -113,7 +113,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
         }, true);
     }
     function validateTAddress (callback) {
-        daemon.cmd('z_validateaddress', [poolOptions.tAddress], function(result) {
+        daemon.cmd('validateaddress', [poolOptions.tAddress], function(result) {
             if (result.error){
                 logger.error(logSystem, logComponent, 'Error with payment processing daemon ' + JSON.stringify(result.error));
                 callback(true);
@@ -121,7 +121,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
             else if (!result.response || !result.response.ismine) {
                 logger.error(logSystem, logComponent,
                     'Daemon does not own pool address - payment processing can not be done with this daemon, '
-                    + JSON.stringify(result.response));
+                    + JSON.stringify(result.response) + '.' + poolOptions.address);
                 callback(true);
             }
             else{
@@ -626,7 +626,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                             serialized: r
                         };
                     });
-                    /* sort rounds by block hieght to pay in order */
+                    /* sort rounds by block height to pay in order */
                     rounds.sort(function(a, b) {
                         return a.height - b.height;
                     });
